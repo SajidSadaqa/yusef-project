@@ -19,6 +19,7 @@ public sealed class CreateShipmentCommandHandler : IRequestHandler<CreateShipmen
 {
     private readonly IApplicationDbContext _dbContext;
     private readonly ITrackingNumberGenerator _trackingNumberGenerator;
+    private readonly IReferenceNumberGenerator _referenceNumberGenerator;
     private readonly ICurrentUserService _currentUserService;
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IMapper _mapper;
@@ -29,12 +30,14 @@ public sealed class CreateShipmentCommandHandler : IRequestHandler<CreateShipmen
     public CreateShipmentCommandHandler(
         IApplicationDbContext dbContext,
         ITrackingNumberGenerator trackingNumberGenerator,
+        IReferenceNumberGenerator referenceNumberGenerator,
         ICurrentUserService currentUserService,
         IDateTimeProvider dateTimeProvider,
         IMapper mapper)
     {
         _dbContext = dbContext;
         _trackingNumberGenerator = trackingNumberGenerator;
+        _referenceNumberGenerator = referenceNumberGenerator;
         _currentUserService = currentUserService;
         _dateTimeProvider = dateTimeProvider;
         _mapper = mapper;
@@ -44,7 +47,21 @@ public sealed class CreateShipmentCommandHandler : IRequestHandler<CreateShipmen
     public async Task<ShipmentDto> Handle(CreateShipmentCommand request, CancellationToken cancellationToken)
     {
         var payload = request.Payload;
+
+        // Generate tracking number
         var trackingNumberValue = await _trackingNumberGenerator.GenerateAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(trackingNumberValue))
+        {
+            throw new InvalidOperationException("Failed to generate tracking number.");
+        }
+
+        // Generate reference number
+        var referenceNumber = await _referenceNumberGenerator.GenerateAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(referenceNumber))
+        {
+            throw new InvalidOperationException("Failed to generate reference number.");
+        }
+
         var trackingNumber = TrackingNumber.Create(trackingNumberValue);
         var originPort = Port.Create(payload.OriginPort!);
         var destinationPort = Port.Create(payload.DestinationPort!);
@@ -55,7 +72,8 @@ public sealed class CreateShipmentCommandHandler : IRequestHandler<CreateShipmen
 
         var shipment = Shipment.Create(
             trackingNumber,
-            payload.ReferenceNumber!,
+            referenceNumber,
+            payload.CustomerReference,
             originPort,
             destinationPort,
             weight,

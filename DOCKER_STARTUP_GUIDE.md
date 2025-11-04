@@ -138,7 +138,7 @@ Frontend will start on: http://localhost:3000
 2. **Login**:
    - Email: `rayvertex1@yahoo.com`
    - Password: `dLf!Ag22Wo1qZwK}`
-3. **Verify Dashboard** loads with real data
+3. **Verify Dashboard** loads (admins only)
 4. **Test Features**:
    - Create a shipment
    - Update shipment status
@@ -156,7 +156,7 @@ Frontend will start on: http://localhost:3000
 - [ ] Token refresh happens automatically (after 15 min)
 
 ### Shipments ✅
-- [ ] List shipments loads (may be empty initially)
+- [ ] List shipments loads (will be empty until you create shipments)
 - [ ] Create new shipment works
 - [ ] Edit shipment works
 - [ ] Delete shipment works
@@ -167,8 +167,8 @@ Frontend will start on: http://localhost:3000
 
 ### Public Tracking ✅
 - [ ] Can track shipment without login
-- [ ] Shows status timeline
-- [ ] Works with any tracking number from system
+- [ ] Shows status timeline (requires real status updates)
+- [ ] Works with tracking numbers that exist in the database
 
 ### Users ✅
 - [ ] List users loads (at least admin user)
@@ -232,6 +232,14 @@ cd shipment-track-backend/docker
 docker-compose down -v
 docker-compose up -d
 ```
+
+**Remove legacy demo shipments:**
+```bash
+# Runs once; remove or edit infra/db/remove_demo_shipments.sql to target other tracking numbers
+docker-compose -f docker-compose.prod.yml run --rm --profile maintenance db-cleanup
+```
+
+> New deployments skip demo shipment seeding outside development. Only run the cleanup if your database already contains the original VTX-202411-0001…0005 records.
 
 **Connect with PgAdmin:**
 1. Open: http://localhost:5050

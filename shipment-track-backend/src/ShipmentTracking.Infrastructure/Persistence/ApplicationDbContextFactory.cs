@@ -21,7 +21,7 @@ public sealed class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Ap
             .Build();
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? "Host=localhost;Port=5432;Database=shipment_tracking;Username=postgres;Password=postgres";
+            ?? "Host=localhost;Port=5432;Database=shipment_tracking;Username=shipmentuser;Password=j5yNFuNnxSfANHBUj--CNeOt";
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         optionsBuilder.UseNpgsql(connectionString).UseSnakeCaseNamingConvention();

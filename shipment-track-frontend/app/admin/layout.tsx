@@ -3,15 +3,17 @@
 import type React from "react"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { User } from "lucide-react"
 import { AdminNav } from "@/components/admin-nav"
 import { getSession } from "@/lib/services/auth.service"
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  const pathname = usePathname()
   const [displayName, setDisplayName] = useState<string>("Admin Portal")
   const [authorized, setAuthorized] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     const session = getSession()
@@ -22,6 +24,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       return
     }
 
+    const isAdminRole = roles.includes("Admin")
+    setIsAdmin(isAdminRole)
+    // If user is not Admin and is on root dashboard (/admin), redirect to shipments
+    if (!isAdminRole && pathname === "/admin") {
+      router.replace("/admin/shipments")
+      return
+    }
+
     const firstName = typeof session.claims?.firstName === "string" ? session.claims.firstName : ""
     const lastName = typeof session.claims?.lastName === "string" ? session.claims.lastName : ""
     const email = typeof session.claims?.email === "string" ? session.claims.email : ""
@@ -29,7 +39,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const name = `${firstName} ${lastName}`.trim() || email || "Team Member"
     setDisplayName(name)
     setAuthorized(true)
-  }, [router])
+  }, [router, pathname])
 
   if (!authorized) {
     return null

@@ -19,8 +19,7 @@ public sealed class UpdateShipmentCommandValidator : AbstractValidator<UpdateShi
         RuleFor(x => x.Payload.ShipmentId)
             .NotEmpty();
 
-        RuleFor(x => x.Payload.ReferenceNumber)
-            .NotEmpty()
+        RuleFor(x => x.Payload.CustomerReference)
             .MaximumLength(128);
 
         RuleFor(x => x.Payload.WeightKg)

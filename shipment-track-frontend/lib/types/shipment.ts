@@ -23,6 +23,7 @@ export type Shipment = {
   id: string
   trackingNumber: string
   referenceNumber: string
+  customerReference?: string | null
   customerId?: string | null
   originPort: string
   destinationPort: string
@@ -54,7 +55,7 @@ export type AppendShipmentStatusPayload = {
 }
 
 export type CreateShipmentPayload = {
-  referenceNumber: string
+  customerReference?: string | null
   customerId?: string | null
   originPort: string
   destinationPort: string

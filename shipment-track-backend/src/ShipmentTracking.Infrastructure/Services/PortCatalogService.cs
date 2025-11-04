@@ -1,65 +1,53 @@
-using System.Collections.Concurrent;
-using Microsoft.Extensions.Options;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using ShipmentTracking.Application.Common.Interfaces;
-using ShipmentTracking.Infrastructure.Options;
 
 namespace ShipmentTracking.Infrastructure.Services;
 
 /// <summary>
-/// Provides port validation using a configurable in-memory catalog.
+/// Provides port validation using the database with in-memory caching for performance.
 /// </summary>
 public sealed class PortCatalogService : IPortCatalogService
 {
-    private readonly IOptionsMonitor<PortCatalogOptions> _optionsMonitor;
-    private ConcurrentDictionary<string, byte> _ports;
+    private readonly IApplicationDbContext _dbContext;
+    private readonly IMemoryCache _cache;
+    private const string CacheKey = "ActivePortCodes";
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(30);
 
-    public PortCatalogService(IOptionsMonitor<PortCatalogOptions> optionsMonitor)
+    public PortCatalogService(IApplicationDbContext dbContext, IMemoryCache cache)
     {
-        _optionsMonitor = optionsMonitor;
-        _ports = BuildPortDictionary(optionsMonitor.CurrentValue);
-        _optionsMonitor.OnChange(options => _ports = BuildPortDictionary(options));
+        _dbContext = dbContext;
+        _cache = cache;
     }
 
-    public Task<bool> PortExistsAsync(string portCode, CancellationToken cancellationToken = default)
+    public async Task<bool> PortExistsAsync(string portCode, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(portCode))
         {
-            return Task.FromResult(false);
+            return false;
         }
 
         var normalized = portCode.Trim().ToUpperInvariant();
-        return Task.FromResult(_ports.ContainsKey(normalized));
-    }
 
-    private static ConcurrentDictionary<string, byte> BuildPortDictionary(PortCatalogOptions options)
-    {
-        var dictionary = new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
-        var source = options.Ports.Count > 0
-            ? options.Ports
-            : DefaultPorts;
-
-        foreach (var port in source)
+        // Try to get from cache first
+        if (_cache.TryGetValue<HashSet<string>>(CacheKey, out var cachedPorts) && cachedPorts != null)
         {
-            if (!string.IsNullOrWhiteSpace(port))
-            {
-                dictionary.TryAdd(port.Trim().ToUpperInvariant(), 0);
-            }
+            return cachedPorts.Contains(normalized);
         }
 
-        return dictionary;
-    }
+        // If not in cache, query database and cache the result
+        var activePorts = await _dbContext.Ports
+            .AsNoTracking()
+            .Where(p => p.IsActive)
+            .Select(p => p.Code)
+            .ToListAsync(cancellationToken);
 
-    private static readonly string[] DefaultPorts =
-    {
-        "USNYC", // New York
-        "CNSHA", // Shanghai
-        "SGSIN", // Singapore
-        "NLRTM", // Rotterdam
-        "DEHAM", // Hamburg
-        "AEJEA", // Jebel Ali
-        "GBFXT", // Felixstowe
-        "JPTYO", // Tokyo
-        "BRSSZ", // Santos
-        "AUMEL", // Melbourne
-    };
+        var portSet = new HashSet<string>(activePorts, StringComparer.OrdinalIgnoreCase);
+
+        _cache.Set(CacheKey, portSet, CacheDuration);
+
+        return portSet.Contains(normalized);
+    }
 }

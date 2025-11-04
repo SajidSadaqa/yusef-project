@@ -7,20 +7,27 @@ import { Menu, X, LogOut } from "lucide-react"
 import { useState, useEffect } from "react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { useRouter } from "next/navigation"
-import { isAuthenticated, logout } from "@/lib/services/auth.service"
+import { getSession, isAuthenticated, logout } from "@/lib/services/auth.service"
 
 export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
     // Check auth state on mount
     setIsLoggedIn(isAuthenticated())
+    const session = getSession()
+    const roles = Array.isArray(session?.claims?.roles) ? (session!.claims!.roles as string[]) : []
+    setIsAdmin(roles.includes("Admin"))
 
     // Listen for storage changes (login/logout events)
     const handleStorageChange = () => {
       setIsLoggedIn(isAuthenticated())
+      const session = getSession()
+      const roles = Array.isArray(session?.claims?.roles) ? (session!.claims!.roles as string[]) : []
+      setIsAdmin(roles.includes("Admin"))
     }
 
     window.addEventListener("storage", handleStorageChange)
@@ -87,15 +94,17 @@ export function Header() {
           <ThemeToggle />
           {isLoggedIn ? (
             <>
-              <Link href="/admin">
-                <Button
-                  variant="ghost"
-                  size="default"
-                  className="font-semibold hover:bg-primary/10 hover:text-primary transition-all"
-                >
-                  Dashboard
-                </Button>
-              </Link>
+              {isAdmin && (
+                <Link href="/admin">
+                  <Button
+                    variant="ghost"
+                    size="default"
+                    className="font-semibold hover:bg-primary/10 hover:text-primary transition-all"
+                  >
+                    Dashboard
+                  </Button>
+                </Link>
+              )}
               <Button
                 onClick={handleLogout}
                 variant="outline"
@@ -115,14 +124,6 @@ export function Header() {
                   className="font-semibold hover:bg-primary/10 hover:text-primary transition-all"
                 >
                   Sign In
-                </Button>
-              </Link>
-              <Link href="/admin">
-                <Button
-                  size="default"
-                  className="bg-linear-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 font-semibold shadow-md hover:shadow-lg transition-all"
-                >
-                  Admin Portal
                 </Button>
               </Link>
             </>
@@ -173,15 +174,17 @@ export function Header() {
               </div>
               {isLoggedIn ? (
                 <>
-                  <Link href="/admin">
-                    <Button
-                      variant="ghost"
-                      size="default"
-                      className="w-full font-semibold hover:bg-primary/10 hover:text-primary"
-                    >
-                      Dashboard
-                    </Button>
-                  </Link>
+                  {isAdmin && (
+                    <Link href="/admin">
+                      <Button
+                        variant="ghost"
+                        size="default"
+                        className="w-full font-semibold hover:bg-primary/10 hover:text-primary"
+                      >
+                        Dashboard
+                      </Button>
+                    </Link>
+                  )}
                   <Button
                     onClick={handleLogout}
                     variant="outline"
@@ -201,14 +204,6 @@ export function Header() {
                       className="w-full font-semibold hover:bg-primary/10 hover:text-primary"
                     >
                       Sign In
-                    </Button>
-                  </Link>
-                  <Link href="/admin">
-                    <Button
-                      size="default"
-                      className="w-full bg-linear-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 font-semibold shadow-md"
-                    >
-                      Admin Portal
                     </Button>
                   </Link>
                 </>

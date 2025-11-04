@@ -11,10 +11,25 @@ import type {
   PublicTracking,
 } from "@/lib/types/shipment"
 
+const SHIPMENT_STATUS_NAMES = [
+  "Received",
+  "Packed",
+  "AtOriginPort",
+  "OnVessel",
+  "ArrivedToPort",
+  "CustomsCleared",
+  "OutForDelivery",
+  "Delivered",
+  "Returned",
+  "Cancelled",
+] as const
+
+type ShipmentStatusName = (typeof SHIPMENT_STATUS_NAMES)[number]
+
 type ListShipmentsParams = {
   page?: number
   pageSize?: number
-  status?: ShipmentStatus
+  status?: ShipmentStatus | ShipmentStatusName
   fromDateUtc?: string
   toDateUtc?: string
   search?: string
@@ -63,7 +78,14 @@ export const listShipments = async (params: ListShipmentsParams = {}) => {
   }
 
   if (params.status !== undefined) {
-    query.set("status", ShipmentStatus[params.status])
+    if (typeof params.status === "number") {
+      const name = SHIPMENT_STATUS_NAMES[params.status]
+      if (name) {
+        query.set("status", name)
+      }
+    } else {
+      query.set("status", params.status)
+    }
   }
 
   if (params.fromDateUtc) {

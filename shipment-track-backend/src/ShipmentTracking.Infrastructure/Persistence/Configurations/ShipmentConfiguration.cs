@@ -28,6 +28,9 @@ public sealed class ShipmentConfiguration : IEntityTypeConfiguration<Shipment>
             .HasMaxLength(128)
             .IsRequired();
 
+        builder.Property(s => s.CustomerReference)
+            .HasMaxLength(128);
+
         builder.Property(s => s.OriginPort)
             .HasConversion(port => port.Code, value => Port.Create(value))
             .HasMaxLength(5)
@@ -63,6 +66,7 @@ public sealed class ShipmentConfiguration : IEntityTypeConfiguration<Shipment>
         builder.Property(s => s.UpdatedByUserId);
 
         builder.HasIndex(s => s.TrackingNumber).IsUnique();
+        builder.HasIndex(s => s.ReferenceNumber).IsUnique();
         builder.HasIndex(s => s.CurrentStatus);
         builder.HasIndex(s => new { s.EstimatedArrivalUtc, s.CurrentStatus });
 

@@ -15,6 +15,8 @@ public sealed class ShipmentDto
 
     public string ReferenceNumber { get; init; } = string.Empty;
 
+    public string? CustomerReference { get; init; }
+
     public Guid? CustomerId { get; init; }
 
     public string OriginPort { get; init; } = string.Empty;

@@ -74,11 +74,15 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IIdentityService, IdentityService>();
         services.AddScoped<ITrackingNumberGenerator, TrackingNumberGenerator>();
+        services.AddScoped<IReferenceNumberGenerator, ReferenceNumberGenerator>();
+        services.AddScoped<IPortCodeGenerator, PortCodeGenerator>();
         services.AddScoped<ITokenService, TokenService>();
 
         RegisterEmailService(services, configuration);
 
         services.AddScoped<IdentitySeeder>();
+        services.AddScoped<ShipmentSeeder>();
+        services.AddScoped<PortSeeder>();
 
         return services;
     }

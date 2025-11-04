@@ -7,7 +7,7 @@ namespace ShipmentTracking.Application.Features.Shipments.Dto;
 /// </summary>
 public sealed class CreateShipmentDto
 {
-    public string? ReferenceNumber { get; init; }
+    public string? CustomerReference { get; init; }
 
     public Guid? CustomerId { get; init; }
 

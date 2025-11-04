@@ -9,7 +9,7 @@ public sealed class UpdateShipmentDto
 {
     public Guid ShipmentId { get; init; }
 
-    public string? ReferenceNumber { get; init; }
+    public string? CustomerReference { get; init; }
 
     public Guid? CustomerId { get; init; }
 

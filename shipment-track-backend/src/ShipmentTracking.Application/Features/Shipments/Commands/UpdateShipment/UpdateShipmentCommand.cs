@@ -51,7 +51,7 @@ public sealed class UpdateShipmentCommandHandler : IRequestHandler<UpdateShipmen
         }
 
         shipment.UpdateDetails(
-            payload.ReferenceNumber!,
+            payload.CustomerReference,
             payload.CustomerId,
             Port.Create(payload.OriginPort!),
             Port.Create(payload.DestinationPort!),

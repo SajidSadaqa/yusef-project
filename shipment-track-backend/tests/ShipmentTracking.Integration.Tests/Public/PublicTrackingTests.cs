@@ -27,7 +27,7 @@ public sealed class PublicTrackingTests
         using var adminClient = await _factory.CreateAuthenticatedClientAsync();
 
         var createRequest = new CreateShipmentRequest(
-            ReferenceNumber: $"REF-{Guid.NewGuid():N}".Substring(0, 12),
+            CustomerReference: $"REF-{Guid.NewGuid():N}".Substring(0, 12),
             CustomerId: Guid.NewGuid(),
             OriginPort: "USNYC",
             DestinationPort: "SGSIN",
@@ -43,6 +43,8 @@ public sealed class PublicTrackingTests
 
         var shipment = await createResponse.Content.ReadFromJsonAsync<ShipmentDto>();
         shipment.Should().NotBeNull();
+        shipment!.ReferenceNumber.Should().StartWith("SHP-");
+        shipment.CustomerReference.Should().Be(createRequest.CustomerReference);
 
         var trackingClient = _factory.CreateClient(new()
         {

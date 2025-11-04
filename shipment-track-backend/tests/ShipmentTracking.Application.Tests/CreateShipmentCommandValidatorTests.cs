@@ -24,7 +24,7 @@ public sealed class CreateShipmentCommandValidatorTests
         var validator = CreateValidator();
         var command = new CreateShipmentCommand(new CreateShipmentDto
         {
-            ReferenceNumber = "ORD-123",
+            CustomerReference = "ORD-123",
             OriginPort = "USNYC",
             DestinationPort = "CNSHA",
             WeightKg = 10.5m,
@@ -44,7 +44,7 @@ public sealed class CreateShipmentCommandValidatorTests
         var validator = new CreateShipmentCommandValidator(_portCatalogMock.Object);
         var command = new CreateShipmentCommand(new CreateShipmentDto
         {
-            ReferenceNumber = "ORD-123",
+            CustomerReference = "ORD-123",
             OriginPort = "USNYC",
             DestinationPort = "INVALID",
             WeightKg = 10.5m,

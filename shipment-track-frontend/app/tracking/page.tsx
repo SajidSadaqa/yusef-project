@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -81,6 +81,20 @@ export default function TrackingPage() {
 
   const currentStatusMeta = result ? statusMeta[result.currentStatus] ?? statusMeta[ShipmentStatus.Received] : null
 
+  const sortedHistory = useMemo(() => {
+    if (!result?.statusHistory) {
+      return []
+    }
+
+    return [...result.statusHistory].sort((a, b) => {
+      const aTime = new Date(a.eventTimeUtc).getTime()
+      const bTime = new Date(b.eventTimeUtc).getTime()
+      return bTime - aTime
+    })
+  }, [result])
+
+  const latestEvent = sortedHistory[0]
+
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="max-w-4xl mx-auto">
@@ -94,7 +108,6 @@ export default function TrackingPage() {
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Enter Tracking Number</CardTitle>
-            <CardDescription>Your tracking number can be found in your confirmation email</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -168,7 +181,7 @@ export default function TrackingPage() {
                     <div>
                       <p className="text-sm text-muted-foreground">Latest Event</p>
                       <p className="font-medium text-foreground">
-                        {result.statusHistory[0]?.description ?? currentStatusMeta.label}
+                        {latestEvent?.description ?? currentStatusMeta.label}
                       </p>
                     </div>
                   </div>
@@ -183,10 +196,10 @@ export default function TrackingPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {(result.statusHistory ?? []).length === 0 && (
+                  {sortedHistory.length === 0 && (
                     <p className="text-sm text-muted-foreground">No tracking history is available yet.</p>
                   )}
-                  {(result.statusHistory ?? []).map((update) => {
+                  {sortedHistory.map((update) => {
                     const meta = statusMeta[update.status] ?? statusMeta[ShipmentStatus.Received]
                     return (
                       <div

@@ -3,7 +3,7 @@ using ShipmentTracking.Domain.Enums;
 namespace ShipmentTracking.WebApi.Contracts.Shipments;
 
 public sealed record CreateShipmentRequest(
-    string ReferenceNumber,
+    string? CustomerReference,
     Guid? CustomerId,
     string OriginPort,
     string DestinationPort,
@@ -16,7 +16,7 @@ public sealed record CreateShipmentRequest(
 
 public sealed record UpdateShipmentRequest(
     Guid ShipmentId,
-    string ReferenceNumber,
+    string? CustomerReference,
     Guid? CustomerId,
     string OriginPort,
     string DestinationPort,

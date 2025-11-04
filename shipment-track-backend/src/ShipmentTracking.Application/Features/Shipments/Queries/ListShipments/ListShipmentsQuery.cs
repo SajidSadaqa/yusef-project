@@ -68,7 +68,8 @@ public sealed class ListShipmentsQueryHandler : IRequestHandler<ListShipmentsQue
             var term = $"%{request.SearchTerm.Trim().ToUpperInvariant()}%";
             query = query.Where(s =>
                 EF.Functions.Like(s.TrackingNumber.Value.ToUpper(), term) ||
-                EF.Functions.Like(s.ReferenceNumber.ToUpper(), term));
+                EF.Functions.Like(s.ReferenceNumber.ToUpper(), term) ||
+                (s.CustomerReference != null && EF.Functions.Like(s.CustomerReference.ToUpper(), term)));
         }
 
         query = query.OrderByDescending(s => s.CreatedAtUtc);

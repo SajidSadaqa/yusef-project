@@ -19,8 +19,7 @@ public sealed class CreateShipmentCommandValidator : AbstractValidator<CreateShi
     {
         _portCatalogService = portCatalogService;
 
-        RuleFor(x => x.Payload.ReferenceNumber)
-            .NotEmpty()
+        RuleFor(x => x.Payload.CustomerReference)
             .MaximumLength(128);
 
         RuleFor(x => x.Payload.WeightKg)

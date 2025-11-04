@@ -18,6 +18,8 @@ public interface IApplicationDbContext
 
     DbSet<AuditLog> AuditLogs { get; }
 
+    DbSet<PortMaster> Ports { get; }
+
     /// <summary>
     /// Persists pending changes to the data store.
     /// </summary>

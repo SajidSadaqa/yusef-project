@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,14 +9,17 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react"
 import { ApiError } from "@/lib/api/http"
 import { createShipment } from "@/lib/services/shipment.service"
+import { listPorts } from "@/lib/services/port.service"
 import type { CreateShipmentPayload } from "@/lib/types/shipment"
+import type { Port } from "@/lib/types/port"
 import { useToast } from "@/hooks/use-toast"
 
 const initialForm: CreateShipmentPayload = {
-  referenceNumber: "",
+  customerReference: "",
   customerId: "",
   originPort: "",
   destinationPort: "",
@@ -34,6 +37,23 @@ export default function CreateShipmentPage() {
   const [formData, setFormData] = useState(initialForm)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [ports, setPorts] = useState<Port[]>([])
+  const [portsLoading, setPortsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchPorts = async () => {
+      try {
+        const data = await listPorts({ activeOnly: true })
+        setPorts(data)
+      } catch (err) {
+        console.error("Failed to load ports:", err)
+        setError("Failed to load ports. Please refresh the page.")
+      } finally {
+        setPortsLoading(false)
+      }
+    }
+    fetchPorts()
+  }, [])
 
   const handleChange = (field: keyof CreateShipmentPayload, value: string) => {
     setFormData((prev) => ({
@@ -64,8 +84,8 @@ export default function CreateShipmentPage() {
     event.preventDefault()
     setError("")
 
-    if (!formData.referenceNumber || !formData.originPort || !formData.destinationPort) {
-      setError("Reference number, origin port, and destination port are required.")
+    if (!formData.originPort || !formData.destinationPort) {
+      setError("Origin and destination ports are required.")
       return
     }
 
@@ -78,8 +98,12 @@ export default function CreateShipmentPage() {
 
     try {
       await createShipment({
-        ...formData,
+        customerReference: formData.customerReference?.trim() || undefined,
         customerId: formData.customerId?.trim() ? formData.customerId : undefined,
+        originPort: formData.originPort.trim(),
+        destinationPort: formData.destinationPort.trim(),
+        weightKg: formData.weightKg,
+        volumeCbm: formData.volumeCbm,
         currentLocation: formData.currentLocation?.trim() || undefined,
         notes: formData.notes?.trim() || undefined,
         estimatedDepartureUtc: toUtcIsoString(formData.estimatedDepartureUtc) ?? undefined,
@@ -117,52 +141,60 @@ export default function CreateShipmentPage() {
       <Card>
         <CardHeader>
           <CardTitle>Shipment Details</CardTitle>
-          <CardDescription>Required operational data for the new shipment.</CardDescription>
+          <CardDescription>
+            Required operational data for the new shipment. Reference numbers are generated automatically.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="referenceNumber">Reference Number *</Label>
-                <Input
-                  id="referenceNumber"
-                  value={formData.referenceNumber}
-                  onChange={(e) => handleChange("referenceNumber", e.target.value)}
-                  placeholder="REF-2025-0001"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="customerId">Customer ID</Label>
-                <Input
-                  id="customerId"
-                  value={formData.customerId ?? ""}
-                  onChange={(e) => handleChange("customerId", e.target.value)}
-                  placeholder="Optional"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="customerId">Customer ID</Label>
+              <Input
+                id="customerId"
+                value={formData.customerId ?? ""}
+                onChange={(e) => handleChange("customerId", e.target.value)}
+                placeholder="Optional"
+              />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="originPort">Origin Port *</Label>
-                <Input
-                  id="originPort"
+                <Select
                   value={formData.originPort}
-                  onChange={(e) => handleChange("originPort", e.target.value)}
-                  placeholder="Los Angeles"
-                  required
-                />
+                  onValueChange={(value) => handleChange("originPort", value)}
+                  disabled={portsLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={portsLoading ? "Loading ports..." : "Select origin port"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ports.map((port) => (
+                      <SelectItem key={port.id} value={port.code}>
+                        {port.name} ({port.code}) - {port.country}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="destinationPort">Destination Port *</Label>
-                <Input
-                  id="destinationPort"
+                <Select
                   value={formData.destinationPort}
-                  onChange={(e) => handleChange("destinationPort", e.target.value)}
-                  placeholder="Singapore"
-                  required
-                />
+                  onValueChange={(value) => handleChange("destinationPort", value)}
+                  disabled={portsLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={portsLoading ? "Loading ports..." : "Select destination port"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ports.map((port) => (
+                      <SelectItem key={port.id} value={port.code}>
+                        {port.name} ({port.code}) - {port.country}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

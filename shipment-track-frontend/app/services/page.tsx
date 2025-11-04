@@ -73,7 +73,7 @@ export default function ServicesPage() {
                 <div>
                   <CardTitle className="text-lg sm:text-xl mb-2">Regional Distribution</CardTitle>
                   <CardDescription className="text-sm leading-relaxed">
-                    Efficient distribution services across California and neighboring states. Leverage our extensive
+                    Efficient distribution services across California. Leverage our extensive
                     network for seamless regional logistics.
                   </CardDescription>
                 </div>
@@ -86,13 +86,6 @@ export default function ServicesPage() {
               <div className="flex items-start gap-4 sm:gap-5">
                 <div className="h-11 w-11 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-md">
                   <Shield className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <CardTitle className="text-lg sm:text-xl mb-2">Specialized Freight</CardTitle>
-                  <CardDescription className="text-sm leading-relaxed">
-                    Handling of temperature-controlled, hazardous, and oversized cargo with specialized equipment.
-                    Expert care for your most demanding shipments.
-                  </CardDescription>
                 </div>
               </div>
             </CardHeader>

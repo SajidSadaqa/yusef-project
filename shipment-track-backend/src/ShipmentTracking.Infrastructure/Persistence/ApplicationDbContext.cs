@@ -32,6 +32,8 @@ public sealed class ApplicationDbContext : IdentityDbContext<ApplicationUser, Ap
 
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
+    public DbSet<PortMaster> Ports => Set<PortMaster>();
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.AddInterceptors(_auditableEntityInterceptor);

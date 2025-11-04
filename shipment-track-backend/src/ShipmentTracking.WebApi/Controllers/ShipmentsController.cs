@@ -33,7 +33,7 @@ public sealed class ShipmentsController : ControllerBase
     {
         var command = new CreateShipmentCommand(new CreateShipmentDto
         {
-            ReferenceNumber = request.ReferenceNumber,
+            CustomerReference = request.CustomerReference,
             CustomerId = request.CustomerId,
             OriginPort = request.OriginPort,
             DestinationPort = request.DestinationPort,
@@ -63,7 +63,7 @@ public sealed class ShipmentsController : ControllerBase
         var command = new UpdateShipmentCommand(new UpdateShipmentDto
         {
             ShipmentId = request.ShipmentId,
-            ReferenceNumber = request.ReferenceNumber,
+            CustomerReference = request.CustomerReference,
             CustomerId = request.CustomerId,
             OriginPort = request.OriginPort,
             DestinationPort = request.DestinationPort,

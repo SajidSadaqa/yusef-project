@@ -23,6 +23,7 @@ public sealed class Shipment : BaseEntity, IAuditableEntity
     private Shipment(
         TrackingNumber trackingNumber,
         string referenceNumber,
+        string? customerReference,
         Port originPort,
         Port destinationPort,
         Weight weightKg,
@@ -35,6 +36,7 @@ public sealed class Shipment : BaseEntity, IAuditableEntity
     {
         TrackingNumber = trackingNumber;
         ReferenceNumber = referenceNumber;
+        CustomerReference = string.IsNullOrWhiteSpace(customerReference) ? null : customerReference.Trim();
         OriginPort = originPort;
         DestinationPort = destinationPort;
         WeightKg = weightKg;
@@ -56,9 +58,14 @@ public sealed class Shipment : BaseEntity, IAuditableEntity
     public TrackingNumber TrackingNumber { get; private set; } = TrackingNumber.Create("VTX-197001-0000");
 
     /// <summary>
-    /// Gets the merchant-provided reference number.
+    /// Gets the system-generated reference number.
     /// </summary>
     public string ReferenceNumber { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Gets the optional customer-provided reference identifier.
+    /// </summary>
+    public string? CustomerReference { get; private set; }
 
     /// <summary>
     /// Gets the optional customer identifier who owns the shipment.
@@ -125,7 +132,8 @@ public sealed class Shipment : BaseEntity, IAuditableEntity
     /// Factory method for creating new shipments.
     /// </summary>
     /// <param name="trackingNumber">Tracking number.</param>
-    /// <param name="referenceNumber">Merchant reference number.</param>
+    /// <param name="referenceNumber">Generated reference number.</param>
+    /// <param name="customerReference">Optional customer-provided reference number.</param>
     /// <param name="originPort">Origin port.</param>
     /// <param name="destinationPort">Destination port.</param>
     /// <param name="weightKg">Weight in kg.</param>
@@ -140,6 +148,7 @@ public sealed class Shipment : BaseEntity, IAuditableEntity
     public static Shipment Create(
         TrackingNumber trackingNumber,
         string referenceNumber,
+        string? customerReference,
         Port originPort,
         Port destinationPort,
         Weight weightKg,
@@ -159,6 +168,7 @@ public sealed class Shipment : BaseEntity, IAuditableEntity
         var shipment = new Shipment(
             trackingNumber,
             referenceNumber.Trim(),
+            customerReference,
             originPort,
             destinationPort,
             weightKg,
@@ -183,7 +193,7 @@ public sealed class Shipment : BaseEntity, IAuditableEntity
     /// Updates non-status details of the shipment.
     /// </summary>
     public void UpdateDetails(
-        string referenceNumber,
+        string? customerReference,
         Guid? customerId,
         Port originPort,
         Port destinationPort,
@@ -194,12 +204,7 @@ public sealed class Shipment : BaseEntity, IAuditableEntity
         string? currentLocation,
         string? notes)
     {
-        if (string.IsNullOrWhiteSpace(referenceNumber))
-        {
-            throw new DomainValidationException("Reference number is required.");
-        }
-
-        ReferenceNumber = referenceNumber.Trim();
+        CustomerReference = string.IsNullOrWhiteSpace(customerReference) ? null : customerReference.Trim();
         CustomerId = customerId;
         OriginPort = originPort;
         DestinationPort = destinationPort;

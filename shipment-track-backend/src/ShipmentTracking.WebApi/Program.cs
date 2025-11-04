@@ -1,4 +1,5 @@
 using Hellang.Middleware.ProblemDetails;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -67,6 +68,19 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
+
+// Forwarded headers (for reverse proxies / load balancers)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor |
+                                ForwardedHeaders.XForwardedProto |
+                                ForwardedHeaders.XForwardedHost;
+    // If running behind a containerized/ephemeral proxy, allow any proxy. Prefer configuring KnownProxies/Networks in production.
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+    options.RequireHeaderSymmetry = false;
+    options.ForwardLimit = null;
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -179,8 +193,18 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     await context.Database.MigrateAsync();
-    var seeder = scope.ServiceProvider.GetRequiredService<IdentitySeeder>();
-    await seeder.SeedAsync();
+
+    var portSeeder = scope.ServiceProvider.GetRequiredService<PortSeeder>();
+    await portSeeder.SeedAsync();
+
+    var identitySeeder = scope.ServiceProvider.GetRequiredService<IdentitySeeder>();
+    await identitySeeder.SeedAsync();
+
+    if (app.Environment.IsDevelopment())
+    {
+        var shipmentSeeder = scope.ServiceProvider.GetRequiredService<ShipmentSeeder>();
+        await shipmentSeeder.SeedAsync();
+    }
 }
 
 if (app.Environment.IsDevelopment())
@@ -188,6 +212,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// Process X-Forwarded-* headers before other middleware uses scheme/host
+app.UseForwardedHeaders();
 
 app.UseSerilogRequestLogging();
 app.UseMiddleware<CorrelationIdMiddleware>();

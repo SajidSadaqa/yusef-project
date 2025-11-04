@@ -6,10 +6,23 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, CheckCircle2, Clock, Package } from "lucide-react"
 import { ApiError } from "@/lib/api/http"
 import { listShipments } from "@/lib/services/shipment.service"
-import { ShipmentStatus, type Shipment } from "@/lib/types/shipment"
+import type { Shipment } from "@/lib/types/shipment"
 
-const statusLabel = (status: ShipmentStatus) =>
-  ShipmentStatus[status]?.replace(/([A-Z])/g, " $1").trim() ?? `Status ${status}`
+const STATUS_NAMES = [
+  "Received",
+  "Packed",
+  "AtOriginPort",
+  "OnVessel",
+  "ArrivedToPort",
+  "CustomsCleared",
+  "OutForDelivery",
+  "Delivered",
+  "Returned",
+  "Cancelled",
+] as const
+
+const statusLabel = (status: number) =>
+  STATUS_NAMES[status]?.replace(/([A-Z])/g, " $1").trim() ?? `Status ${status}`
 
 const formatDate = (value?: string | null) => {
   if (!value) {
@@ -40,17 +53,19 @@ export default function AdminDashboardPage() {
       try {
         const [summary, inTransit, outForDelivery, delivered] = await Promise.all([
           listShipments({ page: 1, pageSize: 5 }),
-          listShipments({ page: 1, pageSize: 1, status: ShipmentStatus.OnVessel }),
-          listShipments({ page: 1, pageSize: 1, status: ShipmentStatus.OutForDelivery }),
-          listShipments({ page: 1, pageSize: 1, status: ShipmentStatus.Delivered }),
+          listShipments({ page: 1, pageSize: 1, status: "OnVessel" }),
+          listShipments({ page: 1, pageSize: 1, status: "OutForDelivery" }),
+          listShipments({ page: 1, pageSize: 1, status: "Delivered" }),
         ])
 
+        // All API calls succeeded, update state with the data (even if empty)
         setTotalShipments(summary.totalCount)
-        setRecentShipments(summary.items)
+        setRecentShipments(summary.items || [])
         setInTransitCount(inTransit.totalCount)
         setOutForDeliveryCount(outForDelivery.totalCount)
         setDeliveredCount(delivered.totalCount)
       } catch (err) {
+        console.error("Dashboard loading error:", err)
         if (err instanceof ApiError) {
           setError(err.message || "Failed to load dashboard data.")
         } else {

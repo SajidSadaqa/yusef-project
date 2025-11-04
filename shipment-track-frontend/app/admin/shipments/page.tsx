@@ -93,6 +93,7 @@ type StatusFilter = (typeof statusOptions)[number]["value"]
 
 type EditShipmentForm = {
   referenceNumber: string
+  customerReference: string
   customerId: string
   originPort: string
   destinationPort: string
@@ -196,6 +197,7 @@ const createStatusForm = (shipment?: Shipment): StatusUpdateForm => ({
 
 const createEditForm = (shipment: Shipment): EditShipmentForm => ({
   referenceNumber: shipment.referenceNumber,
+  customerReference: shipment.customerReference ?? "",
   customerId: shipment.customerId ?? "",
   originPort: shipment.originPort,
   destinationPort: shipment.destinationPort,
@@ -347,8 +349,8 @@ export default function ShipmentsPage() {
       return
     }
 
-    if (!editForm.referenceNumber.trim() || !editForm.originPort.trim() || !editForm.destinationPort.trim()) {
-      setEditError("Reference number, origin, and destination ports are required.")
+    if (!editForm.originPort.trim() || !editForm.destinationPort.trim()) {
+      setEditError("Origin and destination ports are required.")
       return
     }
 
@@ -364,7 +366,7 @@ export default function ShipmentsPage() {
     try {
       await updateShipment({
         shipmentId: selectedShipment.id,
-        referenceNumber: editForm.referenceNumber.trim(),
+        customerReference: editForm.customerReference.trim() || undefined,
         customerId: editForm.customerId.trim() || undefined,
         originPort: editForm.originPort.trim(),
         destinationPort: editForm.destinationPort.trim(),
@@ -524,7 +526,7 @@ export default function ShipmentsPage() {
         <CardContent className="grid gap-4 md:grid-cols-3">
           <div className="col-span-2 flex items-center gap-2">
             <Input
-              placeholder="Search by tracking number, reference, or location"
+              placeholder="Search by tracking number, reference, customer ref, or location"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
@@ -602,7 +604,16 @@ export default function ShipmentsPage() {
                   shipments.map((shipment) => (
                     <TableRow key={shipment.id}>
                       <TableCell className="font-medium">{shipment.trackingNumber}</TableCell>
-                      <TableCell>{shipment.referenceNumber}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-foreground">{shipment.referenceNumber}</span>
+                          {shipment.customerReference && (
+                            <span className="text-xs text-muted-foreground">
+                              Customer ref: {shipment.customerReference}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge variant="secondary">{statusLabel(shipment.currentStatus)}</Badge>
                       </TableCell>
@@ -729,9 +740,10 @@ export default function ShipmentsPage() {
                   <Input
                     id="editReference"
                     value={editForm.referenceNumber}
-                    onChange={(e) => handleEditChange("referenceNumber", e.target.value)}
-                    required
+                    readOnly
+                    className="cursor-text bg-muted/50 focus-visible:ring-0"
                   />
+                  <p className="text-xs text-muted-foreground">Generated automatically and cannot be changed.</p>
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="editCustomer" className="text-sm font-medium text-muted-foreground">
@@ -743,6 +755,18 @@ export default function ShipmentsPage() {
                     onChange={(e) => handleEditChange("customerId", e.target.value)}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="editCustomerReference" className="text-sm font-medium text-muted-foreground">
+                  Customer Reference
+                </label>
+                <Input
+                  id="editCustomerReference"
+                  value={editForm.customerReference}
+                  onChange={(e) => handleEditChange("customerReference", e.target.value)}
+                  placeholder="Optional external reference"
+                />
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">

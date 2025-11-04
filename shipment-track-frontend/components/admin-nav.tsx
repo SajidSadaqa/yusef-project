@@ -2,36 +2,38 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, Package, Users, Settings, LogOut } from "lucide-react"
+import { LayoutDashboard, Package, Users, Settings, LogOut, Anchor } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { logout } from "@/lib/services/auth.service"
+import { getSession, logout } from "@/lib/services/auth.service"
+import { useEffect, useMemo, useState } from "react"
 
-const navItems = [
-  {
-    title: "Dashboard",
-    href: "/admin",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Shipments",
-    href: "/admin/shipments",
-    icon: Package,
-  },
-  {
-    title: "Users",
-    href: "/admin/users",
-    icon: Users,
-  },
-  {
-    title: "Settings",
-    href: "/admin/settings",
-    icon: Settings,
-  },
+type NavItem = { title: string; href: string; icon: React.ComponentType<{ className?: string }> }
+
+const allNavItems: NavItem[] = [
+  { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
+  { title: "Shipments", href: "/admin/shipments", icon: Package },
+  { title: "Ports", href: "/admin/ports", icon: Anchor },
+  { title: "Users", href: "/admin/users", icon: Users },
+  { title: "Settings", href: "/admin/settings", icon: Settings },
 ]
 
 export function AdminNav() {
   const pathname = usePathname()
   const router = useRouter()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    const session = getSession()
+    const roles = Array.isArray(session?.claims?.roles) ? (session!.claims!.roles as string[]) : []
+    setIsAdmin(roles.includes("Admin"))
+  }, [])
+
+  const navItems = useMemo(() => {
+    // Hide Dashboard, Ports, Users, Settings for non-admins.
+    // Keep Shipments visible (Staff access shipments).
+    if (isAdmin) return allNavItems
+    return allNavItems.filter((item) => item.title === "Shipments")
+  }, [isAdmin])
 
   return (
     <nav className="space-y-1">

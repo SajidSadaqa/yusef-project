@@ -8,6 +8,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -102,10 +104,26 @@ services:
     ports:
       - "80:80"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost/healthz || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/healthz || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
+    networks:
+      - app
+
+  db-cleanup:
+    image: postgres:16-alpine
+    profiles: ["maintenance"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    command: ["psql", "-h", "postgres", "-U", "${POSTGRES_USER}", "-d", "${POSTGRES_DB}", "-f", "/scripts/remove_demo_shipments.sql"]
+    volumes:
+      - ./infra/db/remove_demo_shipments.sql:/scripts/remove_demo_shipments.sql:ro
     networks:
       - app
 
