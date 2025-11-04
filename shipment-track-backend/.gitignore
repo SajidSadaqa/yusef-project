@@ -1,0 +1,31 @@
+# Build configuration
+bin/
+obj/
+
+# Visual Studio files
+*.user
+*.suo
+*.userprefs
+.vs/
+
+# JetBrains Rider
+.idea/
+
+# Logs
+*.log
+Logs/
+
+# Packages
+*.nupkg
+packages/
+
+# Coverage
+coverage/
+*.opencover.xml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+*.env

@@ -1,0 +1,39 @@
+@{
+    Layout = null;
+    var firstName = Model.firstName as string ?? "there";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Welcome to Shipment Tracking</title>
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; color: #1f2933; }
+        .container { max-width: 600px; margin: 0 auto; padding: 24px; background-color: #f8fafc; border-radius: 8px; }
+        .button { display: inline-block; padding: 12px 24px; background-color: #2563eb; color: #ffffff !important; text-decoration: none; border-radius: 6px; }
+        .footer { margin-top: 32px; font-size: 12px; color: #6b7280; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome, @firstName!</h1>
+        <p>
+            Thanks for joining Shipment Tracking. We are excited to help you monitor shipments in real time,
+            notify customers, and keep your logistics operations running smoothly.
+        </p>
+        <p>
+            You can get started by signing in to the dashboard and creating your first shipment.
+        </p>
+        <p>
+            <a class="button" href="@Model.dashboardUrl">Open Dashboard</a>
+        </p>
+        <p>
+            If you have any questions, simply reply to this email and a member of our support team will be happy to help.
+        </p>
+        <p>Warm regards,<br/>The Shipment Tracking Team</p>
+        <div class="footer">
+            This message was sent automatically. Please do not share your login credentials with anyone.
+        </div>
+    </div>
+</body>
+</html>

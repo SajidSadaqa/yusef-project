@@ -1,0 +1,6 @@
+@ShipmentTracking.WebApi_HostAddress = http://localhost:5093
+
+GET {{ShipmentTracking.WebApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

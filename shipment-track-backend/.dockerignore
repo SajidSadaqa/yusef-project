@@ -1,0 +1,13 @@
+.vs
+bin
+obj
+docker/.env
+docker/.env.*
+docker-compose*.yml
+**/*.user
+**/*.swp
+TestResults
+node_modules
+**/nuget.config
+**/NuGet.config
+**/.nuget

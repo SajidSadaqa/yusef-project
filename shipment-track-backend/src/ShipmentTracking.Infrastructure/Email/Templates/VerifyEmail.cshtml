@@ -1,0 +1,46 @@
+@{
+    Layout = null;
+    var firstName = Model.firstName as string ?? "there";
+    var verificationUrl = Model.verificationUrl as string;
+    var verificationToken = Model.verificationToken as string;
+    var userId = Model.userId as string;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Verify your email</title>
+    <style>
+        body { font-family: Arial, Helvetica, sans-serif; color: #111827; }
+        .container { max-width: 600px; margin: 0 auto; padding: 24px; background-color: #ffffff; border-radius: 8px; border: 1px solid #e5e7eb; }
+        .button { display: inline-block; padding: 12px 24px; background-color: #10b981; color: #ffffff !important; text-decoration: none; border-radius: 6px; }
+        code { background-color: #f3f4f6; padding: 4px 6px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Hi @firstName, one more step!</h2>
+        <p>
+            Please confirm your email address so we can finish setting up your Shipment Tracking account.
+        </p>
+        @if (!string.IsNullOrWhiteSpace(verificationUrl))
+        {
+            <p>
+                <a class="button" href="@verificationUrl">Verify Email Address</a>
+            </p>
+            <p>If the button above does not work, copy and paste this link into your browser:</p>
+            <p><code>@verificationUrl</code></p>
+        }
+        else
+        {
+            <p>Use the token below to verify your account via the API or mobile application:</p>
+            <p><code>@verificationToken</code></p>
+            <p>User Id: <code>@userId</code></p>
+        }
+        <p>
+            This link will expire in 24 hours for security reasons. If you did not create an account, please ignore this message.
+        </p>
+        <p>Thank you,<br/>The Shipment Tracking Team</p>
+    </div>
+</body>
+</html>
