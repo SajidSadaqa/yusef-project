@@ -81,16 +81,6 @@ export default function ServicesPage() {
             </CardHeader>
           </Card>
 
-          <Card className="border-2 border-emerald-500/20 hover:border-emerald-500/50 transition-all hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br from-emerald-500/5 to-transparent">
-            <CardHeader className="p-5 sm:p-6">
-              <div className="flex items-start gap-4 sm:gap-5">
-                <div className="h-11 w-11 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center flex-shrink-0 shadow-md">
-                  <Shield className="h-5 w-5 text-white" />
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-
           <Card className="border-2 border-amber-500/20 hover:border-amber-500/50 transition-all hover:shadow-lg hover:-translate-y-1 bg-gradient-to-br from-amber-500/5 to-transparent">
             <CardHeader className="p-5 sm:p-6">
               <div className="flex items-start gap-4 sm:gap-5">

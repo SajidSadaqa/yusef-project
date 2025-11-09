@@ -17,54 +17,101 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Package, Truck, Clock, Shield, MapPin, BarChart3, Search } from "lucide-react"
+import { Package, Truck, Clock, Shield, MapPin, BarChart3, Search, AlertCircle } from "lucide-react"
 import { useState, useEffect } from "react"
+import { ApiError } from "@/lib/api/http"
+import { trackShipmentPublic } from "@/lib/services/shipment.service"
+import { ShipmentStatus, type PublicTracking } from "@/lib/types/shipment"
+
+const statusLabels: Record<ShipmentStatus, string> = {
+  [ShipmentStatus.Received]: "Received",
+  [ShipmentStatus.Packed]: "Packed",
+  [ShipmentStatus.AtOriginPort]: "At Origin Port",
+  [ShipmentStatus.OnVessel]: "In Transit",
+  [ShipmentStatus.ArrivedToPort]: "Arrived to Port",
+  [ShipmentStatus.CustomsCleared]: "Customs Cleared",
+  [ShipmentStatus.OutForDelivery]: "Out for Delivery",
+  [ShipmentStatus.Delivered]: "Delivered",
+  [ShipmentStatus.Returned]: "Returned",
+  [ShipmentStatus.Cancelled]: "Cancelled",
+}
+
+const formatDateTime = (value?: string | null) => {
+  if (!value) {
+    return "N/A"
+  }
+
+  try {
+    return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
+  } catch {
+    return value
+  }
+}
+
+const isValidTrackingNumber = (value: string) => {
+  return /^VTX-(\d{4})(0[1-9]|1[0-2])-(\d{4})$/.test(value.trim().toUpperCase())
+}
 
 export default function HomePage() {
   const [trackingNumber, setTrackingNumber] = useState("")
   const [showDetails, setShowDetails] = useState(false)
-  const [shipmentData, setShipmentData] = useState<any>(null)
+  const [shipmentData, setShipmentData] = useState<PublicTracking | null>(null)
   const [isVisible, setIsVisible] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
 
   useEffect(() => {
     setIsVisible(true)
   }, [])
 
-  const handleTrackShipment = (e: React.FormEvent) => {
+  const handleTrackShipment = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (trackingNumber.trim()) {
-      setShipmentData({
-        trackingNumber: trackingNumber,
-        status: "In Transit",
-        origin: "Los Angeles, CA",
-        destination: "San Francisco, CA",
-        estimatedDelivery: "Dec 28, 2024",
-        currentLocation: "Bakersfield, CA",
-        progress: 65,
-        history: [
-          {
-            date: "Dec 24, 2024 10:30 AM",
-            location: "Los Angeles, CA",
-            status: "Picked up",
-            description: "Package picked up from sender's location and loaded onto truck",
-          },
-          {
-            date: "Dec 25, 2024 2:15 PM",
-            location: "Bakersfield, CA",
-            status: "In transit",
-            description: "Shipment is on the way to destination, making good progress",
-          },
-          {
-            date: "Dec 26, 2024 8:00 AM",
-            location: "Bakersfield, CA",
-            status: "At distribution center",
-            description: "Package arrived at distribution center for sorting and processing",
-          },
-        ],
-      })
+    const input = trackingNumber.trim().toUpperCase()
+
+    if (!input) {
+      setError("Please enter a tracking number")
+      setShipmentData(null)
+      return
+    }
+
+    if (!isValidTrackingNumber(input)) {
+      setError("Invalid tracking number. Use VTX-YYYYMM-####.")
+      setShipmentData(null)
+      return
+    }
+
+    setLoading(true)
+    setError("")
+
+    try {
+      const data = await trackShipmentPublic(input)
+      setShipmentData(data)
       setShowDetails(true)
+    } catch (err) {
+      setShipmentData(null)
+      if (err instanceof ApiError) {
+        if (err.status === 404) {
+          setError("Shipment not found. Please verify the tracking number.")
+        } else if (err.status === 400) {
+          setError("Invalid tracking number. Use VTX-YYYYMM-####.")
+        } else {
+          setError("Unable to retrieve tracking information at this time.")
+        }
+      } else {
+        setError("Unable to retrieve tracking information at this time.")
+      }
+    } finally {
+      setLoading(false)
     }
   }
+
+  const historyEvents = shipmentData
+    ? [...shipmentData.statusHistory].sort((a, b) => new Date(b.eventTimeUtc).getTime() - new Date(a.eventTimeUtc).getTime())
+    : []
+
+  const latestEvent = historyEvents[0]
+  const statusLabel = shipmentData ? statusLabels[shipmentData.currentStatus] ?? "Unknown status" : ""
+  const currentLocation = shipmentData ? shipmentData.currentLocation ?? latestEvent?.location ?? "N/A" : "N/A"
 
   return (
     <div className="flex flex-col relative">
@@ -87,32 +134,45 @@ export default function HomePage() {
               <Card className="border-primary-foreground/20 bg-background/98 backdrop-blur shadow-xl hover:shadow-2xl transition-shadow duration-300">
                 <CardContent className="p-4 sm:p-5 md:p-6">
                   <form onSubmit={handleTrackShipment} className="space-y-3 sm:space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="tracking" className="text-sm font-medium">
-                        Tracking Number
-                      </Label>
-                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                        <Input
-                          id="tracking"
-                          placeholder="Enter tracking number"
-                          value={trackingNumber}
-                          onChange={(e) => setTrackingNumber(e.target.value)}
-                          className="flex-1 h-10 text-sm transition-all duration-200 focus:scale-[1.02]"
-                        />
-                        <Button
-                          type="submit"
-                          size="default"
-                          className="h-10 px-5 bg-primary hover:bg-primary/90 w-full sm:w-auto text-sm transition-all duration-200 hover:scale-105"
-                        >
-                          <Search className="h-4 w-4 mr-2" />
-                          Track
-                        </Button>
+                      <div className="space-y-2">
+                        <Label htmlFor="tracking" className="text-sm font-medium">
+                          Tracking Number
+                        </Label>
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                          <Input
+                            id="tracking"
+                            placeholder="e.g., VTX-202511-0001"
+                            value={trackingNumber}
+                            onChange={(e) => {
+                              const value = e.target.value.toUpperCase()
+                              setTrackingNumber(value)
+                              setError("")
+                            }}
+                            className="flex-1 h-10 text-sm transition-all duration-200 focus:scale-[1.02]"
+                            disabled={loading}
+                          />
+                          <Button
+                            type="submit"
+                            size="default"
+                            className="h-10 px-5 bg-primary hover:bg-primary/90 w-full sm:w-auto text-sm transition-all duration-200 hover:scale-105"
+                            disabled={loading}
+                          >
+                            <Search className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+                            {loading ? "Tracking..." : "Track"}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">Format: VTX-YYYYMM-#### (e.g., VTX-202511-0001)</p>
+                        {error && (
+                          <div className="flex items-center gap-2 text-sm text-destructive">
+                            <AlertCircle className="h-4 w-4" />
+                            {error}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
-            </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              </div>
 
             <div
               className={`relative h-[240px] sm:h-[300px] md:h-[350px] lg:h-[400px] overflow-hidden rounded-lg border-2 border-primary-foreground/20 shadow-2xl order-1 lg:order-2 transition-all duration-1000 delay-400 ${isVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-10"}`}
@@ -158,32 +218,34 @@ export default function HomePage() {
                   <p className="text-lg sm:text-xl font-bold text-foreground mt-1">{shipmentData.trackingNumber}</p>
                 </div>
                 <Badge className="text-sm px-3 py-1 bg-gradient-to-r from-primary to-accent text-white hover:shadow-md transition-shadow">
-                  {shipmentData.status}
+                  {statusLabel}
                 </Badge>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20 hover:border-blue-500/40 transition-all">
-                  <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">Origin</p>
-                  <p className="font-bold text-sm sm:text-base text-foreground">{shipmentData.origin}</p>
+                  <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">Current Status</p>
+                  <p className="font-bold text-sm sm:text-base text-foreground">{statusLabel}</p>
                 </div>
                 <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 hover:border-emerald-500/40 transition-all">
                   <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">
-                    Destination
+                    Current Location
                   </p>
-                  <p className="font-bold text-sm sm:text-base text-foreground">{shipmentData.destination}</p>
+                  <p className="font-bold text-sm sm:text-base text-foreground">{currentLocation}</p>
                 </div>
                 <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20 hover:border-amber-500/40 transition-all">
                   <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">
-                    Current Location
+                    Estimated Arrival
                   </p>
-                  <p className="font-bold text-sm sm:text-base text-foreground">{shipmentData.currentLocation}</p>
+                  <p className="font-bold text-sm sm:text-base text-foreground">{formatDateTime(shipmentData.estimatedArrivalUtc)}</p>
                 </div>
                 <div className="p-3 sm:p-4 rounded-lg bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20 hover:border-purple-500/40 transition-all">
                   <p className="text-xs font-semibold text-muted-foreground mb-1 uppercase tracking-wide">
-                    Estimated Delivery
+                    Latest Update
                   </p>
-                  <p className="font-bold text-sm sm:text-base text-foreground">{shipmentData.estimatedDelivery}</p>
+                  <p className="font-bold text-sm sm:text-base text-foreground">
+                    {latestEvent ? formatDateTime(latestEvent.eventTimeUtc) : "N/A"}
+                  </p>
                 </div>
               </div>
 
@@ -192,30 +254,37 @@ export default function HomePage() {
                   <Clock className="h-4 w-4 text-primary" />
                   Shipment History
                 </h3>
-                <div className="space-y-2 pl-3 border-l-2 border-border/50 last:border-0 group hover:translate-x-1 transition-transform">
-                  {shipmentData.history.map((event: any, index: number) => (
-                    <div
-                      key={index}
-                      className="flex gap-3 pb-3 border-b border-border/50 last:border-0 group hover:translate-x-1 transition-transform"
-                    >
-                      <div className="flex-shrink-0 w-2 h-2 rounded-full bg-primary mt-1.5 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all" />
-                      <div className="flex-1 p-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors">
-                        <p className="font-bold text-sm text-foreground">{event.status}</p>
-                        {event.description && (
-                          <p className="text-xs text-foreground/80 mt-1.5 leading-relaxed">{event.description}</p>
-                        )}
-                        <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
-                          <MapPin className="h-3 w-3" />
-                          {event.location}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
-                          <Clock className="h-3 w-3" />
-                          {event.date}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {historyEvents.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No history recorded yet for this shipment.</p>
+                ) : (
+                  <div className="space-y-2 pl-3 border-l-2 border-border/50 last:border-0 group hover:translate-x-1 transition-transform">
+                    {historyEvents.map((event) => {
+                      const label = statusLabels[event.status] ?? "Unknown status"
+                      return (
+                        <div
+                          key={event.id}
+                          className="flex gap-3 pb-3 border-b border-border/50 last:border-0 group hover:translate-x-1 transition-transform"
+                        >
+                          <div className="flex-shrink-0 w-2 h-2 rounded-full bg-primary mt-1.5 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all" />
+                          <div className="flex-1 p-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-colors">
+                            <p className="font-bold text-sm text-foreground">{label}</p>
+                            {event.description && (
+                              <p className="text-xs text-foreground/80 mt-1.5 leading-relaxed">{event.description}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
+                              <MapPin className="h-3 w-3" />
+                              {event.location ?? "N/A"}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                              <Clock className="h-3 w-3" />
+                              {formatDateTime(event.eventTimeUtc)}
+                            </p>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -332,14 +401,6 @@ export default function HomePage() {
                 Get started with Vertex Transport today and experience professional logistics services
               </p>
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
-                <Link href="/tracking" className="w-full sm:w-auto">
-                  <Button
-                    size="lg"
-                    className="w-full sm:w-auto bg-primary hover:bg-primary/90 h-11 px-6 text-sm sm:text-base transition-all duration-200 hover:scale-105"
-                  >
-                    Track Your Shipment
-                  </Button>
-                </Link>
                 <Link href="/login" className="w-full sm:w-auto">
                   <Button
                     size="lg"

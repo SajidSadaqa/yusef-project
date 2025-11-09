@@ -19,9 +19,12 @@ public sealed class TrackingNumberGenerator : ITrackingNumberGenerator
 
     public async Task<string> GenerateAsync(CancellationToken cancellationToken = default)
     {
-        var trackingNumber = await _dbContext.Database
-            .SqlQueryRaw<string>("SELECT CONCAT('VTX-', TO_CHAR(CURRENT_DATE, 'YYYYMM'), '-', LPAD(nextval('tracking_number_seq')::text, 4, '0'));")
-            .FirstAsync(cancellationToken);
+        await using var command = _dbContext.Database.GetDbConnection().CreateCommand();
+        command.CommandText = "SELECT CONCAT('VTX-', TO_CHAR(CURRENT_DATE, 'YYYYMM'), '-', LPAD(nextval('tracking_number_seq')::text, 4, '0'))";
+
+        await _dbContext.Database.OpenConnectionAsync(cancellationToken);
+        var result = await command.ExecuteScalarAsync(cancellationToken);
+        var trackingNumber = result?.ToString() ?? throw new InvalidOperationException("Failed to generate tracking number");
 
         // Validate with domain rules before returning.
         return TrackingNumber.Create(trackingNumber).Value;

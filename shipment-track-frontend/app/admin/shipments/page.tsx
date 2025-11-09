@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useCallback } from "react"
 import Link from "next/link"
 import {
   Card,
@@ -69,11 +69,13 @@ import {
   listShipments,
   updateShipment,
 } from "@/lib/services/shipment.service"
+import { listPorts } from "@/lib/services/port.service"
 import {
   ShipmentStatus,
   type Shipment,
   type ShipmentStatusHistory,
 } from "@/lib/types/shipment"
+import type { Port } from "@/lib/types/port"
 
 const statusOptions = [
   { label: "All statuses", value: "all" as const },
@@ -236,9 +238,12 @@ export default function ShipmentsPage() {
   const [statusSubmitting, setStatusSubmitting] = useState(false)
   const [statusError, setStatusError] = useState("")
 
+  const [ports, setPorts] = useState<Port[]>([])
+  const [portsLoading, setPortsLoading] = useState(true)
+
   const totalPages = useMemo(() => Math.max(1, Math.ceil(totalCount / pageSize)), [totalCount, pageSize])
 
-  const loadShipments = async (pageOverride?: number, statusOverride?: StatusFilter) => {
+  const loadShipments = useCallback(async (pageOverride?: number, statusOverride?: StatusFilter) => {
     setLoading(true)
     setError("")
 
@@ -265,9 +270,9 @@ export default function ShipmentsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, pageSize, statusFilter, searchQuery])
 
-  const refreshHistory = async (shipment: Shipment) => {
+  const refreshHistory = useCallback(async (shipment: Shipment) => {
     setHistoryDialogOpen(true)
     setHistoryLoading(true)
     setSelectedShipment(shipment)
@@ -285,12 +290,29 @@ export default function ShipmentsPage() {
     } finally {
       setHistoryLoading(false)
     }
-  }
+  }, [toast])
 
   useEffect(() => {
     loadShipments()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, statusFilter])
+  }, [loadShipments])
+
+  useEffect(() => {
+    const fetchPorts = async () => {
+      try {
+        const data = await listPorts({ activeOnly: true })
+        setPorts(data)
+      } catch (err) {
+        console.error("Failed to load ports:", err)
+        toast({
+          variant: "destructive",
+          description: "Failed to load ports. Some features may be limited.",
+        })
+      } finally {
+        setPortsLoading(false)
+      }
+    }
+    fetchPorts()
+  }, [toast])
 
   const handleSearch = async () => {
     setPage(1)
@@ -313,6 +335,11 @@ export default function ShipmentsPage() {
       toast({ description: "Shipment deleted successfully." })
       setDeleteDialogOpen(false)
       setSelectedShipment(null)
+      // Check if we need to go back a page (if we deleted the last item on current page)
+      const remainingOnPage = shipments.length - 1
+      if (remainingOnPage === 0 && page > 1) {
+        setPage(page - 1)
+      }
       await loadShipments(page)
     } catch (err) {
       if (err instanceof ApiError) {
@@ -774,23 +801,43 @@ export default function ShipmentsPage() {
                   <label htmlFor="editOrigin" className="text-sm font-medium text-muted-foreground">
                     Origin Port
                   </label>
-                  <Input
-                    id="editOrigin"
+                  <Select
                     value={editForm.originPort}
-                    onChange={(e) => handleEditChange("originPort", e.target.value)}
-                    required
-                  />
+                    onValueChange={(value) => handleEditChange("originPort", value)}
+                    disabled={portsLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={portsLoading ? "Loading ports..." : "Select origin port"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ports.map((port) => (
+                        <SelectItem key={port.id} value={port.code}>
+                          {port.name} ({port.code}) - {port.country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <label htmlFor="editDestination" className="text-sm font-medium text-muted-foreground">
                     Destination Port
                   </label>
-                  <Input
-                    id="editDestination"
+                  <Select
                     value={editForm.destinationPort}
-                    onChange={(e) => handleEditChange("destinationPort", e.target.value)}
-                    required
-                  />
+                    onValueChange={(value) => handleEditChange("destinationPort", value)}
+                    disabled={portsLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={portsLoading ? "Loading ports..." : "Select destination port"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ports.map((port) => (
+                        <SelectItem key={port.id} value={port.code}>
+                          {port.name} ({port.code}) - {port.country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

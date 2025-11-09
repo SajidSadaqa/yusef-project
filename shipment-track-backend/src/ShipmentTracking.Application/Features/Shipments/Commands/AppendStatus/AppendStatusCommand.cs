@@ -43,7 +43,7 @@ public sealed class AppendStatusCommandHandler : IRequestHandler<AppendStatusCom
         var payload = request.Payload;
 
         var shipment = await _dbContext.Shipments
-            .Include(s => s.StatusHistory)
+            .AsNoTracking()
             .FirstOrDefaultAsync(s => s.Id == payload.ShipmentId && !s.IsDeleted, cancellationToken);
 
         if (shipment is null)
@@ -52,17 +52,36 @@ public sealed class AppendStatusCommandHandler : IRequestHandler<AppendStatusCom
         }
 
         var eventTime = payload.EventTimeUtc.ToUniversalTime();
-        shipment.AppendStatus(
+
+        // Create the new status history entity
+        var statusHistory = ShipmentStatusHistory.Create(
+            shipment.Id,
             payload.Status,
             payload.Description,
             payload.Location,
             eventTime,
             _currentUserService.UserId);
 
-        shipment.SetUpdatedAudit(_currentUserService.UserId, eventTime);
+        // Add directly to DbSet to ensure proper entity state tracking
+        _dbContext.ShipmentStatusHistories.Add(statusHistory);
+
+        // Update shipment status
+        var trackedShipment = await _dbContext.Shipments
+            .FirstOrDefaultAsync(s => s.Id == payload.ShipmentId, cancellationToken);
+
+        if (trackedShipment is not null)
+        {
+            trackedShipment.UpdateCurrentStatus(payload.Status);
+        }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return _mapper.Map<ShipmentDto>(shipment);
+        // Reload with status history for mapping to DTO
+        var result = await _dbContext.Shipments
+            .Include(s => s.StatusHistory)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == payload.ShipmentId, cancellationToken);
+
+        return _mapper.Map<ShipmentDto>(result!);
     }
 }

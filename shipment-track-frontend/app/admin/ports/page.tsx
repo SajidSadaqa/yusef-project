@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -26,7 +26,7 @@ export default function PortsPage() {
   const [deleting, setDeleting] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
 
-  const fetchPorts = async () => {
+  const fetchPorts = useCallback(async () => {
     try {
       setLoading(true)
       const data = await listPorts({
@@ -43,7 +43,7 @@ export default function PortsPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [showInactive, searchTerm, toast])
 
   useEffect(() => {
     // Determine if current user has Admin role
@@ -52,7 +52,7 @@ export default function PortsPage() {
     setIsAdmin(roles.includes("Admin"))
 
     fetchPorts()
-  }, [showInactive])
+  }, [fetchPorts])
 
   const handleSearch = () => {
     fetchPorts()

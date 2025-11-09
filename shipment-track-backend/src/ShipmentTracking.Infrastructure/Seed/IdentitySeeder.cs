@@ -1,4 +1,3 @@
-using System.Linq;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -10,26 +9,18 @@ namespace ShipmentTracking.Infrastructure.Seed;
 /// <summary>
 /// Seeds default roles and administrator account.
 /// </summary>
-public sealed class IdentitySeeder
+public sealed class IdentitySeeder(
+    RoleManager<ApplicationRole> roleManager,
+    UserManager<ApplicationUser> userManager,
+    IOptions<AdminUserOptions> adminOptions,
+    ILogger<IdentitySeeder> logger)
 {
     private static readonly string[] DefaultRoles = { "Admin", "Staff", "Customer" };
 
-    private readonly RoleManager<ApplicationRole> _roleManager;
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly AdminUserOptions _adminOptions;
-    private readonly ILogger<IdentitySeeder> _logger;
-
-    public IdentitySeeder(
-        RoleManager<ApplicationRole> roleManager,
-        UserManager<ApplicationUser> userManager,
-        IOptions<AdminUserOptions> adminOptions,
-        ILogger<IdentitySeeder> logger)
-    {
-        _roleManager = roleManager;
-        _userManager = userManager;
-        _adminOptions = adminOptions.Value;
-        _logger = logger;
-    }
+    private readonly RoleManager<ApplicationRole> _roleManager = roleManager;
+    private readonly UserManager<ApplicationUser> _userManager = userManager;
+    private readonly AdminUserOptions _adminOptions = adminOptions.Value;
+    private readonly ILogger<IdentitySeeder> _logger = logger;
 
     public async Task SeedAsync(CancellationToken cancellationToken = default)
     {

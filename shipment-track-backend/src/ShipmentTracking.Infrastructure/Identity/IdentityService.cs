@@ -46,6 +46,7 @@ public sealed class IdentityService : IIdentityService
             LastName = lastName,
             PhoneNumber = phoneNumber,
             CreatedAtUtc = _dateTimeProvider.UtcNow,
+            UpdatedAtUtc = _dateTimeProvider.UtcNow,
             EmailConfirmed = false,
             IsActive = true
         };
@@ -208,6 +209,8 @@ public sealed class IdentityService : IIdentityService
         foreach (var user in users)
         {
             var roles = await _userManager.GetRolesAsync(user);
+            var primaryRole = roles.FirstOrDefault() ?? "Customer";
+
             items.Add(new UserDto
             {
                 Id = user.Id.ToString(),
@@ -216,7 +219,11 @@ public sealed class IdentityService : IIdentityService
                 LastName = user.LastName,
                 PhoneNumber = user.PhoneNumber,
                 EmailConfirmed = user.EmailConfirmed,
-                Roles = roles.ToArray()
+                Roles = roles.ToArray(),
+                Role = primaryRole,
+                Status = user.Status.ToString(),
+                CreatedAt = user.CreatedAtUtc,
+                UpdatedAt = user.UpdatedAtUtc
             });
         }
 
@@ -256,6 +263,103 @@ public sealed class IdentityService : IIdentityService
         }
 
         return Result.Success();
+    }
+
+    public async Task<Result> UpdateUserAsync(
+        string userId,
+        string? email,
+        string? firstName,
+        string? lastName,
+        string? role,
+        string? status,
+        CancellationToken cancellationToken)
+    {
+        var user = await FindUserByIdAsync(userId, cancellationToken);
+        if (user is null)
+        {
+            return Result.Failure(new[] { "User not found." });
+        }
+
+        var hasChanges = false;
+
+        if (!string.IsNullOrWhiteSpace(email) && user.Email != email)
+        {
+            user.Email = email;
+            user.UserName = email;
+            user.EmailConfirmed = false; // Reset confirmation when email changes
+            hasChanges = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(firstName) && user.FirstName != firstName)
+        {
+            user.FirstName = firstName;
+            hasChanges = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(lastName) && user.LastName != lastName)
+        {
+            user.LastName = lastName;
+            hasChanges = true;
+        }
+
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<Domain.Enums.UserStatus>(status, out var userStatus))
+        {
+            if (user.Status != userStatus)
+            {
+                user.Status = userStatus;
+                user.IsActive = userStatus == Domain.Enums.UserStatus.Active;
+                hasChanges = true;
+            }
+        }
+
+        if (hasChanges)
+        {
+            user.UpdatedAtUtc = _dateTimeProvider.UtcNow;
+            var updateResult = await _userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                return Result.Failure(updateResult.Errors.Select(e => e.Description));
+            }
+        }
+
+        // Update role if specified
+        if (!string.IsNullOrWhiteSpace(role))
+        {
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            if (!currentRoles.Contains(role))
+            {
+                // Remove all current roles and add the new one
+                if (currentRoles.Count > 0)
+                {
+                    var removeResult = await _userManager.RemoveFromRolesAsync(user, currentRoles);
+                    if (!removeResult.Succeeded)
+                    {
+                        return Result.Failure(removeResult.Errors.Select(e => e.Description));
+                    }
+                }
+
+                await EnsureRoleExistsAsync(role, cancellationToken);
+                var addResult = await _userManager.AddToRoleAsync(user, role);
+                if (!addResult.Succeeded)
+                {
+                    return Result.Failure(addResult.Errors.Select(e => e.Description));
+                }
+            }
+        }
+
+        return Result.Success();
+    }
+
+    public async Task<Result> DeleteUserAsync(string userId, CancellationToken cancellationToken)
+    {
+        var user = await FindUserByIdAsync(userId, cancellationToken);
+        if (user is null)
+        {
+            return Result.Failure(new[] { "User not found." });
+        }
+
+        var result = await _userManager.DeleteAsync(user);
+        return result.Succeeded ? Result.Success() : Result.Failure(result.Errors.Select(e => e.Description));
     }
 
     private async Task<ApplicationUser?> FindUserByIdAsync(string userId, CancellationToken cancellationToken)

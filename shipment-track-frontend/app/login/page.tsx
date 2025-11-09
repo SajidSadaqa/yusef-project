@@ -22,7 +22,7 @@ const getRedirectPath = (sessionRoles: unknown): string => {
     }
   }
 
-  return "/tracking"
+  return "/"
 }
 
 export default function LoginPage() {

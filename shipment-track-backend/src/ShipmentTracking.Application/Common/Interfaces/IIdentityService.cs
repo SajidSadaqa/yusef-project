@@ -79,4 +79,21 @@ public interface IIdentityService
     /// Updates the roles assigned to a user.
     /// </summary>
     Task<Result> UpdateUserRolesAsync(string userId, IReadOnlyCollection<string> roles, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Updates user profile information.
+    /// </summary>
+    Task<Result> UpdateUserAsync(
+        string userId,
+        string? email,
+        string? firstName,
+        string? lastName,
+        string? role,
+        string? status,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Deletes a user.
+    /// </summary>
+    Task<Result> DeleteUserAsync(string userId, CancellationToken cancellationToken);
 }

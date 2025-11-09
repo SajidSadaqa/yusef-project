@@ -12,7 +12,8 @@ public sealed class ShipmentsMappingProfile : Profile
 {
     public ShipmentsMappingProfile()
     {
-        CreateMap<ShipmentStatusHistory, ShipmentStatusHistoryDto>();
+        CreateMap<ShipmentStatusHistory, ShipmentStatusHistoryDto>()
+            .MaxDepth(1);
 
         CreateMap<Shipment, ShipmentDto>()
             .ForMember(dest => dest.TrackingNumber, opt => opt.MapFrom(src => src.TrackingNumber.Value))

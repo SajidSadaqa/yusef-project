@@ -1,5 +1,15 @@
-const DEFAULT_PUBLIC_API_URL = "http://localhost:8080/api"
-const DEFAULT_INTERNAL_API_URL = "http://localhost:8080/api"
+// Environment validation
+const validateEnvVar = (value: string | undefined, name: string, fallback?: string): string => {
+  // In production, require environment variables to be set
+  if (process.env.NODE_ENV === 'production' && !value) {
+    if (!fallback) {
+      throw new Error(`Missing required environment variable: ${name}`)
+    }
+    console.warn(`Using fallback for ${name}. Set this in production!`)
+  }
+
+  return value ?? fallback ?? ''
+}
 
 const normalizeBaseUrl = (value?: string) => {
   if (!value) {
@@ -10,7 +20,12 @@ const normalizeBaseUrl = (value?: string) => {
 }
 
 export const getPublicApiBaseUrl = () => {
-  return normalizeBaseUrl(process.env.NEXT_PUBLIC_API_URL) ?? DEFAULT_PUBLIC_API_URL
+  const url = validateEnvVar(
+    process.env.NEXT_PUBLIC_API_URL,
+    'NEXT_PUBLIC_API_URL',
+    process.env.NODE_ENV === 'development' ? 'http://localhost:8080/api' : undefined
+  )
+  return normalizeBaseUrl(url) ?? ''
 }
 
 export const getInternalApiBaseUrl = () => {
@@ -18,5 +33,10 @@ export const getInternalApiBaseUrl = () => {
     return getPublicApiBaseUrl()
   }
 
-  return normalizeBaseUrl(process.env.API_INTERNAL_URL) ?? getPublicApiBaseUrl() ?? DEFAULT_INTERNAL_API_URL
+  const url = validateEnvVar(
+    process.env.API_INTERNAL_URL,
+    'API_INTERNAL_URL',
+    process.env.NODE_ENV === 'development' ? 'http://localhost:8080/api' : undefined
+  )
+  return normalizeBaseUrl(url) ?? getPublicApiBaseUrl()
 }

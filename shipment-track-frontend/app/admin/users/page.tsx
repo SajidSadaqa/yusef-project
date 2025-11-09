@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Plus, Edit, Trash2, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
+import { Plus, Edit, Trash2, Loader2, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -75,12 +75,7 @@ export default function UsersPage() {
 
   const { toast } = useToast()
 
-  // Load users on mount and when page changes
-  useEffect(() => {
-    loadUsers()
-  }, [currentPage])
-
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true)
     try {
       const result = await listUsers({
@@ -106,7 +101,12 @@ export default function UsersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentPage, pageSize, toast])
+
+  // Load users on mount and when page changes
+  useEffect(() => {
+    loadUsers()
+  }, [loadUsers])
 
   const handleAddUser = () => {
     setNewUserForm({
@@ -156,7 +156,8 @@ export default function UsersPage() {
       })
 
       setAddDialogOpen(false)
-      // Refresh the list
+      // Reset to page 1 and refresh the list
+      setCurrentPage(1)
       await loadUsers()
     } catch (error) {
       if (error instanceof ApiError) {
@@ -222,7 +223,7 @@ export default function UsersPage() {
       setEditDialogOpen(false)
       setEditForm(null)
       setSelectedUser(null)
-      // Refresh the list
+      // Refresh the list (stay on current page for updates)
       await loadUsers()
     } catch (error) {
       if (error instanceof ApiError) {
@@ -262,6 +263,11 @@ export default function UsersPage() {
 
       setDeleteDialogOpen(false)
       setSelectedUser(null)
+      // Check if we need to go back a page (if we deleted the last item on current page)
+      const remainingOnPage = users.length - 1
+      if (remainingOnPage === 0 && currentPage > 1) {
+        setCurrentPage(currentPage - 1)
+      }
       // Refresh the list
       await loadUsers()
     } catch (error) {
@@ -300,10 +306,16 @@ export default function UsersPage() {
           <h1 className="text-3xl font-bold text-foreground">Users</h1>
           <p className="text-muted-foreground mt-1">Manage user accounts and permissions</p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90" onClick={handleAddUser}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add User
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => loadUsers()} disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+          <Button className="bg-primary hover:bg-primary/90" onClick={handleAddUser}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add User
+          </Button>
+        </div>
       </div>
 
       <Card>

@@ -258,8 +258,17 @@ public sealed class Shipment : BaseEntity, IAuditableEntity
         _statusHistory.Add(historyEntry);
         CurrentStatus = status;
 
-        UpdatedByUserId = updatedByUserId;
-        MarkUpdated(eventTimeUtc);
+        // Note: UpdatedAtUtc and UpdatedByUserId are managed by AuditableEntitySaveChangesInterceptor
+    }
+
+    /// <summary>
+    /// Updates the current status of the shipment without modifying the status history collection.
+    /// This is used when the status history is managed separately.
+    /// </summary>
+    /// <param name="status">The new status.</param>
+    public void UpdateCurrentStatus(ShipmentStatus status)
+    {
+        CurrentStatus = status;
     }
 
     /// <inheritdoc/>

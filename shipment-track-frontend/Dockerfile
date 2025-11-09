@@ -18,7 +18,10 @@ COPY package.json pnpm-lock.yaml* ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm build
+# Allow network access during build for font downloads
+RUN --mount=type=cache,target=/root/.pnpm-store \
+    --network=default \
+    pnpm build
 
 FROM node:20-alpine AS runner
 WORKDIR /app

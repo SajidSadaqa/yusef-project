@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 using ShipmentTracking.Application.Common.Interfaces;
 
 namespace ShipmentTracking.Infrastructure.Services;
@@ -11,14 +12,14 @@ namespace ShipmentTracking.Infrastructure.Services;
 /// </summary>
 public sealed class PortCatalogService : IPortCatalogService
 {
-    private readonly IApplicationDbContext _dbContext;
+    private readonly IServiceProvider _serviceProvider;
     private readonly IMemoryCache _cache;
     private const string CacheKey = "ActivePortCodes";
     private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(30);
 
-    public PortCatalogService(IApplicationDbContext dbContext, IMemoryCache cache)
+    public PortCatalogService(IServiceProvider serviceProvider, IMemoryCache cache)
     {
-        _dbContext = dbContext;
+        _serviceProvider = serviceProvider;
         _cache = cache;
     }
 
@@ -37,8 +38,11 @@ public sealed class PortCatalogService : IPortCatalogService
             return cachedPorts.Contains(normalized);
         }
 
-        // If not in cache, query database and cache the result
-        var activePorts = await _dbContext.Ports
+        // If not in cache, create a scope to query database and cache the result
+        using var scope = _serviceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+
+        var activePorts = await dbContext.Ports
             .AsNoTracking()
             .Where(p => p.IsActive)
             .Select(p => p.Code)

@@ -71,3 +71,39 @@ export function getUserStatusLabel(status: UserStatus): string {
       return 'Unknown';
   }
 }
+
+export function parseUserRole(roleString: string | undefined): UserRole {
+  if (!roleString) return UserRole.Customer;
+  switch (roleString) {
+    case 'Admin':
+      return UserRole.Admin;
+    case 'Staff':
+      return UserRole.Staff;
+    case 'Customer':
+      return UserRole.Customer;
+    default:
+      return UserRole.Customer;
+  }
+}
+
+export function parseUserStatus(statusString: string | undefined): UserStatus {
+  if (!statusString) return UserStatus.Active;
+  switch (statusString) {
+    case 'Active':
+      return UserStatus.Active;
+    case 'Inactive':
+      return UserStatus.Inactive;
+    case 'Suspended':
+      return UserStatus.Suspended;
+    default:
+      return UserStatus.Active;
+  }
+}
+
+export function userRoleToString(role: UserRole): string {
+  return getUserRoleLabel(role);
+}
+
+export function userStatusToString(status: UserStatus): string {
+  return getUserStatusLabel(status);
+}

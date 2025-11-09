@@ -45,6 +45,15 @@ builder.Services.AddProblemDetails(options =>
         Extensions = { ["errors"] = exception.Errors }
     });
 
+    // Map domain validation failures (e.g., invalid tracking number format) to 400
+    options.Map<ShipmentTracking.Domain.Exceptions.DomainValidationException>((context, exception) =>
+        new Microsoft.AspNetCore.Mvc.ProblemDetails
+        {
+            Title = "Domain validation error",
+            Status = StatusCodes.Status400BadRequest,
+            Detail = exception.Message
+        });
+
     options.Map<NotFoundException>((context, exception) => new Microsoft.AspNetCore.Mvc.ProblemDetails
     {
         Title = "Resource not found",

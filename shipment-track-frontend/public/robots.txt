@@ -1,0 +1,13 @@
+# Vertex Transport - Shipment Tracking
+# https://www.vertextransport.com
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://www.vertextransport.com/sitemap.xml
+
+# Crawl-delay for politeness
+Crawl-delay: 1

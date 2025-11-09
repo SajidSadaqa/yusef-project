@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LayoutDashboard, Package, Users, Settings, LogOut, Anchor } from "lucide-react"
+import { LayoutDashboard, Package, Users, LogOut, Anchor } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getSession, logout } from "@/lib/services/auth.service"
 import { useEffect, useMemo, useState } from "react"
@@ -14,7 +14,6 @@ const allNavItems: NavItem[] = [
   { title: "Shipments", href: "/admin/shipments", icon: Package },
   { title: "Ports", href: "/admin/ports", icon: Anchor },
   { title: "Users", href: "/admin/users", icon: Users },
-  { title: "Settings", href: "/admin/settings", icon: Settings },
 ]
 
 export function AdminNav() {
