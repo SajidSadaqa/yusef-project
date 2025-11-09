@@ -29,7 +29,7 @@ export default function VerifyEmailPage() {
 
   const verifyEmailToken = async (userId: string, token: string) => {
     try {
-      await verifyEmail(userId, token)
+      await verifyEmail({ userId, token })
       setStatus("success")
     } catch (error) {
       setStatus("error")
