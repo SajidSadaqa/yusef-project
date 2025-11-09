@@ -3,11 +3,10 @@
 import { useRef } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
 import { useScroll } from "framer-motion"
-import type * as THREE from "three"
 
 function TruckModel() {
-  const truckRef = useRef<THREE.Group>(null)
-  const wheelsRef = useRef<THREE.Group[]>([])
+  const truckRef = useRef<any>(null)
+  const wheelsRef = useRef<any[]>([])
   const { scrollYProgress } = useScroll()
 
   useFrame(() => {

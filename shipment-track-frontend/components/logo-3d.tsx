@@ -4,10 +4,9 @@ import { useRef } from "react"
 import { Canvas, useFrame } from "@react-three/fiber"
 import { Text3D, Center } from "@react-three/drei"
 import { useScroll } from "framer-motion"
-import type * as THREE from "three"
 
 function Logo3DModel() {
-  const logoRef = useRef<THREE.Group>(null)
+  const logoRef = useRef<any>(null)
   const { scrollYProgress } = useScroll()
 
   useFrame(() => {
