@@ -59,7 +59,7 @@ export default function ResetPasswordPage() {
     setErrorMessage("")
 
     try {
-      await resetPassword(userId, token, password)
+      await resetPassword({ userId, token, newPassword: password })
       setStatus("success")
     } catch (error) {
       setStatus("error")
