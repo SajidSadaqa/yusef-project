@@ -52,7 +52,7 @@ const withAuthorization = async <TResponse>(path: string, init: RequestInit = {}
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
       const refreshed = await refreshTokens()
-      token = refreshed?.accessToken
+      token = refreshed?.accessToken ?? null
 
       if (!token) {
         throw new ApiError(401, "Session expired. Please sign in again.", error.payload)
