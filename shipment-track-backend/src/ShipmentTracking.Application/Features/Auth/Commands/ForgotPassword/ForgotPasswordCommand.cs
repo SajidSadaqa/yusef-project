@@ -59,21 +59,16 @@ public sealed class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswor
             ["resetUrl"] = resetUrl
         };
 
-        try
-        {
-            await _emailService.SendTemplateEmailAsync(
-                request.Email,
-                "Reset your Shipment Tracking password",
-                "ResetPassword",
-                model,
-                cancellationToken);
+        _logger.LogInformation("Attempting to send password reset email to {Email}", request.Email);
 
-            _logger.LogInformation("Successfully sent password reset email to {Email}", request.Email);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to send password reset email to {Email}", request.Email);
-        }
+        await _emailService.SendTemplateEmailAsync(
+            request.Email,
+            "Reset your Shipment Tracking password",
+            "ResetPassword",
+            model,
+            cancellationToken);
+
+        _logger.LogInformation("Successfully sent password reset email to {Email}", request.Email);
 
         return Unit.Value;
     }

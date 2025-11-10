@@ -79,34 +79,31 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, st
                 verificationTokenResult.Value),
         };
 
-        try
+        _logger.LogInformation("Attempting to send verification email to {Email}", request.Email);
+
+        await _emailService.SendTemplateEmailAsync(
+            request.Email,
+            "Verify your Shipment Tracking account",
+            "VerifyEmail",
+            verificationModel,
+            cancellationToken);
+
+        _logger.LogInformation("Verification email sent successfully, now sending welcome email to {Email}", request.Email);
+
+        var welcomeModel = new Dictionary<string, object?>
         {
-            await _emailService.SendTemplateEmailAsync(
-                request.Email,
-                "Verify your Shipment Tracking account",
-                "VerifyEmail",
-                verificationModel,
-                cancellationToken);
+            ["firstName"] = request.FirstName ?? request.Email,
+            ["dashboardUrl"] = request.DashboardUrl ?? string.Empty
+        };
 
-            var welcomeModel = new Dictionary<string, object?>
-            {
-                ["firstName"] = request.FirstName ?? request.Email,
-                ["dashboardUrl"] = request.DashboardUrl ?? string.Empty
-            };
+        await _emailService.SendTemplateEmailAsync(
+            request.Email,
+            "Welcome to Shipment Tracking",
+            "WelcomeEmail",
+            welcomeModel,
+            cancellationToken);
 
-            await _emailService.SendTemplateEmailAsync(
-                request.Email,
-                "Welcome to Shipment Tracking",
-                "WelcomeEmail",
-                welcomeModel,
-                cancellationToken);
-
-            _logger.LogInformation("Successfully sent verification and welcome emails to {Email}", request.Email);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to send verification/welcome emails to {Email}. User was created successfully but emails were not sent.", request.Email);
-        }
+        _logger.LogInformation("Successfully sent verification and welcome emails to {Email}", request.Email);
 
         return userId;
     }
