@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using ShipmentTracking.Application.Common.Exceptions;
 using ShipmentTracking.Application.Common.Interfaces;
 
@@ -26,11 +27,16 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, st
 {
     private readonly IIdentityService _identityService;
     private readonly IEmailService _emailService;
+    private readonly ILogger<RegisterCommandHandler> _logger;
 
-    public RegisterCommandHandler(IIdentityService identityService, IEmailService emailService)
+    public RegisterCommandHandler(
+        IIdentityService identityService,
+        IEmailService emailService,
+        ILogger<RegisterCommandHandler> logger)
     {
         _identityService = identityService;
         _emailService = emailService;
+        _logger = logger;
     }
 
     public async Task<string> Handle(RegisterCommand request, CancellationToken cancellationToken)
@@ -73,25 +79,34 @@ public sealed class RegisterCommandHandler : IRequestHandler<RegisterCommand, st
                 verificationTokenResult.Value),
         };
 
-        await _emailService.SendTemplateEmailAsync(
-            request.Email,
-            "Verify your Shipment Tracking account",
-            "VerifyEmail",
-            verificationModel,
-            cancellationToken);
-
-        var welcomeModel = new Dictionary<string, object?>
+        try
         {
-            ["firstName"] = request.FirstName ?? request.Email,
-            ["dashboardUrl"] = request.DashboardUrl ?? string.Empty
-        };
+            await _emailService.SendTemplateEmailAsync(
+                request.Email,
+                "Verify your Shipment Tracking account",
+                "VerifyEmail",
+                verificationModel,
+                cancellationToken);
 
-        await _emailService.SendTemplateEmailAsync(
-            request.Email,
-            "Welcome to Shipment Tracking",
-            "WelcomeEmail",
-            welcomeModel,
-            cancellationToken);
+            var welcomeModel = new Dictionary<string, object?>
+            {
+                ["firstName"] = request.FirstName ?? request.Email,
+                ["dashboardUrl"] = request.DashboardUrl ?? string.Empty
+            };
+
+            await _emailService.SendTemplateEmailAsync(
+                request.Email,
+                "Welcome to Shipment Tracking",
+                "WelcomeEmail",
+                welcomeModel,
+                cancellationToken);
+
+            _logger.LogInformation("Successfully sent verification and welcome emails to {Email}", request.Email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send verification/welcome emails to {Email}. User was created successfully but emails were not sent.", request.Email);
+        }
 
         return userId;
     }

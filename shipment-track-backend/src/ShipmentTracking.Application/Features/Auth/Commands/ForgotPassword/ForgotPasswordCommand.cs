@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using ShipmentTracking.Application.Common.Interfaces;
 
 namespace ShipmentTracking.Application.Features.Auth.Commands.ForgotPassword;
@@ -18,11 +19,16 @@ public sealed class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswor
 {
     private readonly IIdentityService _identityService;
     private readonly IEmailService _emailService;
+    private readonly ILogger<ForgotPasswordCommandHandler> _logger;
 
-    public ForgotPasswordCommandHandler(IIdentityService identityService, IEmailService emailService)
+    public ForgotPasswordCommandHandler(
+        IIdentityService identityService,
+        IEmailService emailService,
+        ILogger<ForgotPasswordCommandHandler> logger)
     {
         _identityService = identityService;
         _emailService = emailService;
+        _logger = logger;
     }
 
     public async Task<Unit> Handle(ForgotPasswordCommand request, CancellationToken cancellationToken)
@@ -53,12 +59,21 @@ public sealed class ForgotPasswordCommandHandler : IRequestHandler<ForgotPasswor
             ["resetUrl"] = resetUrl
         };
 
-        await _emailService.SendTemplateEmailAsync(
-            request.Email,
-            "Reset your Shipment Tracking password",
-            "ResetPassword",
-            model,
-            cancellationToken);
+        try
+        {
+            await _emailService.SendTemplateEmailAsync(
+                request.Email,
+                "Reset your Shipment Tracking password",
+                "ResetPassword",
+                model,
+                cancellationToken);
+
+            _logger.LogInformation("Successfully sent password reset email to {Email}", request.Email);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send password reset email to {Email}", request.Email);
+        }
 
         return Unit.Value;
     }
